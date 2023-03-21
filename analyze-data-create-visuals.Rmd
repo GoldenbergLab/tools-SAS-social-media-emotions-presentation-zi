@@ -35,29 +35,33 @@ reddit = as.data.frame(reddit[["data"]])
 ## sentiment - versus tweet statistics
 
 ## normal plot (no color change)
-ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) + 
-  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
-  theme_bw() +
-  labs(x = "Sentiment", y = "log(likeCount+1)")+
-  ggtitle("Relationship between tweet sentiment and number of likes on Tweets")+
-  theme(plot.title = element_text(hjust = 0.5))
+# ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) + 
+#   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
+#   theme_bw() +
+#   labs(x = "Sentiment", y = "log(likeCount+1)")+
+#   ggtitle("Relationship between tweet sentiment and number of likes on Tweets")+
+#   theme(plot.title = element_text(hjust = 0.5))
 
 ## plot with color change
 p <- ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) +
-  # geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
   #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
 # grab smoothed values
+# don't run this when you run the code a second time with geom_line (above) commented out
 df2_twitter <- ggplot_build(p)[[1]][[2]][ , c("x", "y")]
 
 # add smoothed values with conditional color
 p +
   geom_line(data = df2_twitter, aes(x = x, y = y, color = x > 0),size = 1) +
   theme_bw() +
-  labs(x = "Sentiment", y = "log(likeCount + 1)")+
+  labs(x = "Sentiment", y = "Likes (log)")+
   ggtitle("Twitter")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none");p 
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "none",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p 
 
 
 model1 = lm(log(likeCount+1) ~ poly(vader_compound, 2, raw = TRUE), twitter); summary(model1)
@@ -70,6 +74,7 @@ t_emotions$ID <- 1:nrow(t_emotions)
 t_emotion_long = melt(t_emotions, id.vars = c("ID","likeCount"))
 t_emotion_long[is.na(t_emotion_long)] <- 0
 t_emotion_long$variable =  substring(t_emotion_long$variable, 5)
+des = t_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
 
 model4 = lmer(log(likeCount+1) ~ variable-1+(1|ID), data = t_emotion_long); summary(model4)
 confint(model3)
@@ -231,11 +236,17 @@ reddit_emotions = reddit[ , grepl( "NRC_overall" , names( reddit ) ) ]
 reddit_emotions$id = reddit$id
 reddit_emotions$score = reddit$score
 reddit_emotions = select(reddit_emotions, -c(anticip,positive,negative))
+
 reddit_emotion_long = melt(reddit_emotions, id.vars = c("id","score"))
 reddit_emotion_long[is.na(reddit_emotion_long)] <- 0
+des = reddit_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
 
-model4 = lmer(log(score+1) ~ variable-1+(1|id), data = reddit_emotion_long); summary(model4)
+
+model4 = lmer(log(score+1) ~ variable+(1|id), data = reddit_emotion_long); summary(model4)
 confint(model4)
+
+model5 = lm(log(score+1) ~ variable, data = reddit_emotion_long); summary(model5)
+
 
 
 ggplot(reddit_emotion_long, aes(y=value,x=variable,fill=variable))+ 
