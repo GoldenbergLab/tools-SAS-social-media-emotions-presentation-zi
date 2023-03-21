@@ -42,9 +42,9 @@ reddit = as.data.frame(reddit[["data"]])
 #   ggtitle("Relationship between tweet sentiment and number of likes on Tweets")+
 #   theme(plot.title = element_text(hjust = 0.5))
 
-## plot with color change
+## plot with color change from red to green
 p <- ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) +
-  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  geom_line(linetype="blank") + ### you can comment this out on the second run of the code
   #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
@@ -63,10 +63,11 @@ p +
         axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
         axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p 
 
-
+## this is the regression for a polynomial of vader_compound on like count
 model1 = lm(log(likeCount+1) ~ poly(vader_compound, 2, raw = TRUE), twitter); summary(model1)
 confint(model1)
 
+## make long format of tweets for lmer of distinct emotions (doesn't work that well)
 t_emotions = twitter[ , grepl( "NRC_" , names( twitter ) ) ]
 t_emotions = select(t_emotions, -c(NRC_anticip,NRC_positive,NRC_negative,NRC_overall_emotions))
 t_emotions$likeCount = twitter$likeCount
@@ -76,9 +77,9 @@ t_emotion_long[is.na(t_emotion_long)] <- 0
 t_emotion_long$variable =  substring(t_emotion_long$variable, 5)
 des = t_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
 
+## lmer
 model4 = lmer(log(likeCount+1) ~ variable-1+(1|ID), data = t_emotion_long); summary(model4)
 confint(model3)
-
 
 ggplot(t_emotion_long, aes(y=value,x=variable,fill=variable))+ 
   stat_summary(fun.data=mean_sdl, geom="bar") + 
@@ -86,23 +87,35 @@ ggplot(t_emotion_long, aes(y=value,x=variable,fill=variable))+
   labs(x = "Emotion", y = "Frequency", fill = " variable")+
   ggtitle("Emotions making up tweets")
 
+### lm of distinct emotions on like count
 model3 = lm(log(likeCount+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                                    scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, raw = TRUE, twitter); summary(model3)
 confint(model3)
 
+## put results in df
 results <- tidy(model3)
 ci = as.data.frame(confint(model3))
 
+## add ci
 results$lower = ci$`2.5 %`
 results$upper = ci$`97.5 %`
 
+## graph results
 ggplot(results, aes(y=estimate, x=term, fill=term))+geom_bar(stat='identity')+ 
   stat_summary(fun.data=mean_sdl, geom="bar") +
   theme_bw() +
   labs(x = "Emotion", y = "log(likeCount+1)", fill = " variable")+
-  ggtitle("Emotion regression coefficients on likes on Twitter posts")+
+  ggtitle("Twitter")+
   scale_x_discrete(labels=c('anger', 'anticipation', 'disgust', 'fear','joy','sadness','trust'))+theme(legend.position = "none")+ 
   geom_errorbar(aes(ymin=lower, ymax=upper), #add error bars 
-                width=.2, position=position_dodge(.9))
+                width=.2, position=position_dodge(.9))+
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "none",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 1, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 2, r = 0, b = 0, l = 0)),
+        axis.text.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.text.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        ) 
+
 
 
 
@@ -128,7 +141,7 @@ ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
 
 ## plot with color change
 p1 <- ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
-#  geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
   #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
@@ -141,7 +154,10 @@ p1 +
   theme_bw() +
   labs(x = "Sentiment", y = "log(like-count + 1)")+
   ggtitle("YouTube")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none");p1
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "none",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p1
 
 model3 = lm(log(video_like_count+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                              scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, raw = TRUE, yt); summary(model3)
 
@@ -195,7 +211,7 @@ ggplot(reddit_plot, aes(x = vader_compound, y = log(score+1))) +
 
 ## plot with color change
 p2 <- ggplot(reddit, aes(x = vader_compound, y = log(score+1))) +
-  ###geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
   #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
@@ -208,7 +224,10 @@ p2 +
   theme_bw() +
   labs(x = "Sentiment", y = "log(like-count + 1)")+
   ggtitle("Reddit")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none");p2
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "none",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p2
 
 
 model3 = lm(log(score+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                                    scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, reddit); summary(model3)
