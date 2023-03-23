@@ -27,6 +27,8 @@ yt[is.na(yt)] <- 0
 
 reddit = read_json("data-with-sentiment/psychology-reddit-1000-top-with-sentiment.json",simplifyVector = TRUE)
 reddit = as.data.frame(reddit[["data"]])
+
+bobo_emotions = read.csv("bobo-emotions-by-frame.csv")
 ```
 
 
@@ -171,7 +173,7 @@ ggplot(results, aes(y=estimate, x=term, fill=term))+geom_bar(stat='identity')+
 
 
 yt_emotions = yt[ , grepl( "NRC_" , names( yt ) ) ]
-yt_emotions = select(yt_emotions, -c(NRC_anticip,NRC_positive,NRC_negative,NRC_overall_emotions))
+yt_emotions = select(yt_emotions, -c(NRC_positive,NRC_negative,NRC_overall_emotions))
 yt_emotion_long = melt(yt_emotions)
 yt_emotion_long[is.na(yt_emotion_long)] <- 0
 yt_emotion_long$variable =  substring(yt_emotion_long$variable, 5)
@@ -262,5 +264,36 @@ model5 = lm(log(score+1) ~ variable, data = reddit_emotion_long); summary(model5
 
 ggplot(reddit_emotion_long, aes(y=value,x=variable,fill=variable))+ 
   stat_summary(fun.data=mean_sdl, geom="bar")
+```
+```{r bobo}
+
+bobo_emotion_long = melt(bobo_emotions, id.vars = c("X","box"))
+bobo_emotion_long[is.na(bobo_emotion_long)] <- 0
+
+ggplot(bobo_emotion_long, aes(y=value,x=variable,fill=variable))+ 
+  stat_summary(fun.data=mean_sdl, geom="bar") +
+  theme_bw() +
+  labs(x = "Emotion", y = "Average Value")+
+  ggtitle("Average Emotions")+
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+        legend.position = "none",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 1, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 2, r = 0, b = 0, l = 0)),
+        axis.text.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.text.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        ) 
+
+ggplot(bobo_emotion_long, aes(y=value,x=X,fill=variable,colour=variable))+ 
+  geom_line() +
+  theme_bw() +
+  labs(x = "Time", y = "Emotion value")+
+  ggtitle("Emotions Over Time")+
+  theme(plot.title = element_text(hjust = 0.5, size = 30),
+ #       legend.position = "",
+        axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 1, b = 0, l = 0)),
+        axis.title.x = element_text(size = 17, margin = margin(t = 2, r = 0, b = 0, l = 0)),
+        axis.text.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        axis.text.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
+        ) 
 ```
 
