@@ -77,9 +77,9 @@ t_emotion_long[is.na(t_emotion_long)] <- 0
 t_emotion_long$variable =  substring(t_emotion_long$variable, 5)
 des = t_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
 
-## lmer
-model4 = lmer(log(likeCount+1) ~ variable-1+(1|ID), data = t_emotion_long); summary(model4)
-confint(model3)
+## lmer didn't work
+# model4 = lmer(log(likeCount+1) ~ variable-1+(1|ID), data = t_emotion_long); summary(model4)
+# confint(model4)
 
 ggplot(t_emotion_long, aes(y=value,x=variable,fill=variable))+ 
   stat_summary(fun.data=mean_sdl, geom="bar") + 
@@ -115,19 +115,11 @@ ggplot(results, aes(y=estimate, x=term, fill=term))+geom_bar(stat='identity')+
         axis.text.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
         axis.text.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
         ) 
-
-
-
-
  
 ```
 
 ```{r YouTube}
 ## sentiment - versus video statistics
-
-# ggplot(yt, aes(x = title_vader_compound, y = log(video_view_count+1))) + geom_point()
-# ggplot(yt, aes(x = title_vader_compound, y = log(video_comment_count+1))) + geom_point()
-# ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) + geom_point()
 
 model1 = lm(log(video_like_count+1) ~ poly(title_vader_compound, 2, raw = TRUE), yt); summary(model1)
 confint(model1)
@@ -141,7 +133,7 @@ ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
 
 ## plot with color change
 p1 <- ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
-  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  ###geom_line(linetype="blank") + ### you can comment this out on the second run of the code
   #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
@@ -152,7 +144,7 @@ df2_yt <- ggplot_build(p1)[[1]][[2]][ , c("x", "y")]
 p1 +
   geom_line(data = df2_yt, aes(x = x, y = y, color = x > 0), size = 1) +
   theme_bw() +
-  labs(x = "Sentiment", y = "log(like-count + 1)")+
+  labs(x = "Sentiment", y = "Likes (log)")+
   ggtitle("YouTube")+
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         legend.position = "none",
@@ -222,7 +214,7 @@ df2_r <- ggplot_build(p2)[[1]][[2]][ , c("x", "y")]
 p2 +
   geom_line(data = df2_r, aes(x = x, y = y, color = x > 0), size = 1) +
   theme_bw() +
-  labs(x = "Sentiment", y = "log(like-count + 1)")+
+  labs(x = "Sentiment", y = "Likes (log)")+
   ggtitle("Reddit")+
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         legend.position = "none",
