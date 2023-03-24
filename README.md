@@ -1,8 +1,8 @@
 # tools-social-media-emotions-presentation-zi
 
-## Folders
+## Contents
 
-Each folder of the repo is below:
+What's in this repository?
 
 - **api-codes:** contains the codes that extract raw social media data via APIs
 - **text-sentiment-and-emotion-extraction:** once data is extracted, process it by performing sentiment analysis and emotional extraction technologies
