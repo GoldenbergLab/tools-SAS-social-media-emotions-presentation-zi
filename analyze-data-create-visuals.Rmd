@@ -6,6 +6,8 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
+## call libraries
 library(tidyverse)
 library(jsonlite)
 library(reshape)
@@ -14,47 +16,55 @@ library(broom)
 library(lme4)
 library(effects)
 
+## remove all previous variables
 rm(list = ls())
 
-
-twitter = read.csv("data-with-sentiment/pschology-tweets-with-sentiment.csv")
+## twitter read csv
+twitter = read.csv("sentiment-and-emotion-extraction/data-with-sentiment/pschology-tweets-with-sentiment.csv")
 twitter = select(twitter, -c(X, Unnamed..0))
 twitter[is.na(twitter)] <- 0
 
-yt = read.csv("data-with-sentiment/pschology-youtube-with-sentiment.csv")
+## youtube read csv
+yt = read.csv("sentiment-and-emotion-extraction/data-with-sentiment/pschology-youtube-with-sentiment.csv")
 yt = select(yt, -c(X, Unnamed..0))
 yt[is.na(yt)] <- 0
 
-reddit = read_json("data-with-sentiment/psychology-reddit-1000-top-with-sentiment.json",simplifyVector = TRUE)
+## reddit read json
+reddit = read_json("sentiment-and-emotion-extraction/data-with-sentiment/psychology-reddit-1000-top-with-sentiment.json",simplifyVector = TRUE)
 reddit = as.data.frame(reddit[["data"]])
 
-bobo_emotions = read.csv("bobo-emotions-by-frame.csv")
+## read csv video emotions
+video_emotions = read.csv("facial-emotion-detection/facial-emotion-outputs/video-emotions-by-frame.csv")
 ```
 
 
 ```{r twitter}
 
-## sentiment - versus tweet statistics
+## sentiment - versus tweet likes
 
-## normal plot (no color change)
+## plot - this plot is fancy and contains a color change
+
+## if you want the normal plot just run the code below:
+## regular plot, no color change
 # ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) + 
-#   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
+#   stat_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
 #   theme_bw() +
-#   labs(x = "Sentiment", y = "log(likeCount+1)")+
-#   ggtitle("Relationship between tweet sentiment and number of likes on Tweets")+
-#   theme(plot.title = element_text(hjust = 0.5))
+#   labs(x = "Sentiment", y = "log(score+1)")+
+#   ggtitle("Relationship between tweet sentiment and number of likes on Tweets")
 
-## plot with color change from red to green
+## create a fake plot to start (we need to make some additional values for the color change to happen)
 p <- ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) +
-  geom_line(linetype="blank") + ### you can comment this out on the second run of the code
-  #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
-  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
+  geom_line(linetype="blank") + 
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000)
 
-# grab smoothed values
-# don't run this when you run the code a second time with geom_line (above) commented out
+# grab smoothed values, expand the values 
 df2_twitter <- ggplot_build(p)[[1]][[2]][ , c("x", "y")]
 
-# add smoothed values with conditional color
+## remake the sameplot
+p <- ggplot(twitter, aes(x = vader_compound, y = log(likeCount+1))) +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000)
+
+## populate the line with color and add styling to the plot
 p +
   geom_line(data = df2_twitter, aes(x = x, y = y, color = x > 0),size = 1) +
   theme_bw() +
@@ -63,35 +73,11 @@ p +
   theme(plot.title = element_text(hjust = 0.5, size = 30),
         legend.position = "none",
         axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
-        axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p 
-
-## this is the regression for a polynomial of vader_compound on like count
-model1 = lm(log(likeCount+1) ~ poly(vader_compound, 2, raw = TRUE), twitter); summary(model1)
-confint(model1)
-
-## make long format of tweets for lmer of distinct emotions (doesn't work that well)
-t_emotions = twitter[ , grepl( "NRC_" , names( twitter ) ) ]
-t_emotions = select(t_emotions, -c(NRC_anticip,NRC_positive,NRC_negative,NRC_overall_emotions))
-t_emotions$likeCount = twitter$likeCount
-t_emotions$ID <- 1:nrow(t_emotions)
-t_emotion_long = melt(t_emotions, id.vars = c("ID","likeCount"))
-t_emotion_long[is.na(t_emotion_long)] <- 0
-t_emotion_long$variable =  substring(t_emotion_long$variable, 5)
-des = t_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
-
-## lmer didn't work
-# model4 = lmer(log(likeCount+1) ~ variable-1+(1|ID), data = t_emotion_long); summary(model4)
-# confint(model4)
-
-ggplot(t_emotion_long, aes(y=value,x=variable,fill=variable))+ 
-  stat_summary(fun.data=mean_sdl, geom="bar") + 
-  theme_bw() +
-  labs(x = "Emotion", y = "Frequency", fill = " variable")+
-  ggtitle("Emotions making up tweets")
+        axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0))) ;p
 
 ### lm of distinct emotions on like count
-model3 = lm(log(likeCount+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                                    scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, raw = TRUE, twitter); summary(model3)
-confint(model3)
+model3 = lm(log(likeCount+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                                    scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, 
+            raw = TRUE, twitter); summary(model3)
 
 ## put results in df
 results <- tidy(model3)
@@ -127,20 +113,25 @@ model1 = lm(log(video_like_count+1) ~ poly(title_vader_compound, 2, raw = TRUE),
 confint(model1)
 
 ## regular plot, no color change
-ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) + 
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
-  theme_bw() +
-  labs(x = "Sentiment", y = "log(score+1)")+
-  ggtitle("Relationship between tweet sentiment and number of likes on YouTube Videos")
+# ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) + 
+#   stat_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
+#   theme_bw() +
+#   labs(x = "Sentiment", y = "log(score+1)")+
+#   ggtitle("Relationship between tweet sentiment and number of likes on YouTube Videos")
 
 ## plot with color change
 p1 <- ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
-  ###geom_line(linetype="blank") + ### you can comment this out on the second run of the code
-  #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
+  geom_line(linetype="blank") + 
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
 # grab smoothed values
 df2_yt <- ggplot_build(p1)[[1]][[2]][ , c("x", "y")]
+
+
+p1 <- ggplot(yt, aes(x = title_vader_compound, y = log(video_like_count+1))) +
+  ###geom_line(linetype="blank") + ### you can comment this out on the second run of the code
+  #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
 # add smoothed values with conditional color
 p1 +
@@ -153,64 +144,30 @@ p1 +
         axis.title.y = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
         axis.title.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)));p1
 
-model3 = lm(log(video_like_count+1) ~ scale(NRC_fear)+scale(NRC_anger)+scale(NRC_sadness)+scale(NRC_disgust)+                                                              scale(NRC_trust)+scale(NRC_joy)+scale(NRC_anticipation)-1, raw = TRUE, yt); summary(model3)
-
-results <- tidy(model3)
-ci = as.data.frame(confint(model3))
-
-results$lower = ci$`2.5 %`
-results$upper = ci$`97.5 %`
-
-ggplot(results, aes(y=estimate, x=term, fill=term))+geom_bar(stat='identity')+ 
-  stat_summary(fun.data=mean_sdl, geom="bar") +
-  theme_bw() +
-  labs(x = "Emotion", y = "log(likeCount+1)", fill = " variable")+
-  ggtitle("Emotion regression coefficients on likes on Reddit posts")+
-  scale_x_discrete(labels=c('anger', 'anticipation', 'disgust', 'fear','joy','sadness','trust'))+theme(legend.position = "none")+ 
-  geom_errorbar(aes(ymin=lower, ymax=upper), #add error bars 
-                width=.2, position=position_dodge(.9))
-
-
-
-yt_emotions = yt[ , grepl( "NRC_" , names( yt ) ) ]
-yt_emotions = select(yt_emotions, -c(NRC_positive,NRC_negative,NRC_overall_emotions))
-yt_emotion_long = melt(yt_emotions)
-yt_emotion_long[is.na(yt_emotion_long)] <- 0
-yt_emotion_long$variable =  substring(yt_emotion_long$variable, 5)
-
-ggplot(yt_emotion_long, aes(y=value,x=variable,fill=variable))+ 
-  stat_summary(fun.data=mean_sdl, geom="bar") +
-  theme_bw() +
-  labs(x = "Emotion", y = "Frequency", fill = " variable")+
-  ggtitle("Emotions making up tweets")
 
 ```
 
 ```{r}
 
-model1 = lm(log(score+1) ~ poly(vader_compound, 2, raw = TRUE), reddit); summary(model1)
-confint(model1)
-
-model2 = lm(log(score+1) ~ vader_compound, raw = TRUE, reddit); summary(model2)
-confint(model2)
-
-reddit_plot = filter(reddit, log(reddit$score+1)<=10)
-
-ggplot(reddit_plot, aes(x = vader_compound, y = log(score+1))) + 
-  stat_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
-  theme_bw() +
-  labs(x = "Sentiment", y = "log(score+1)")+
-  ggtitle("Reddit")
+## regular plot (uncomment to run)
+# ggplot(reddit_plot, aes(x = vader_compound, y = log(score+1))) + 
+#   stat_smooth(method = "lm", formula = y ~ x + I(x^2), size=1) +
+#   theme_bw() +
+#   labs(x = "Sentiment", y = "log(score+1)")+
+#   ggtitle("Reddit")
 
 
 ## plot with color change
 p2 <- ggplot(reddit, aes(x = vader_compound, y = log(score+1))) +
-  #geom_line(linetype="blank") + ### you can comment this out on the second run of the code
-  #### the above line is important for the first line of code because it does some kind of indexing when making df2 (which allows for the fake values to populate)
+  geom_line(linetype="blank") + 
   geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
 # grab smoothed values
 df2_r <- ggplot_build(p2)[[1]][[2]][ , c("x", "y")]
+
+## remake plot
+p2 <- ggplot(reddit, aes(x = vader_compound, y = log(score+1))) +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), size=1,linetype = "blank", n = 10000) 
 
 # add smoothed values with conditional color
 p2 +
@@ -242,35 +199,15 @@ ggplot(results, aes(y=estimate, x=term, fill=term))+geom_bar(stat='identity')+
   geom_errorbar(aes(ymin=lower, ymax=upper), #add error bars 
                 width=.2, position=position_dodge(.9))
 
-
-
-
-reddit_emotions = reddit[ , grepl( "NRC_overall" , names( reddit ) ) ]
-reddit_emotions$id = reddit$id
-reddit_emotions$score = reddit$score
-reddit_emotions = select(reddit_emotions, -c(anticip,positive,negative))
-
-reddit_emotion_long = melt(reddit_emotions, id.vars = c("id","score"))
-reddit_emotion_long[is.na(reddit_emotion_long)] <- 0
-des = reddit_emotion_long %>% group_by(variable) %>% summarise(a= mean(value, na.rm=T))
-
-
-model4 = lmer(log(score+1) ~ variable+(1|id), data = reddit_emotion_long); summary(model4)
-confint(model4)
-
-model5 = lm(log(score+1) ~ variable, data = reddit_emotion_long); summary(model5)
-
-
-
-ggplot(reddit_emotion_long, aes(y=value,x=variable,fill=variable))+ 
-  stat_summary(fun.data=mean_sdl, geom="bar")
 ```
-```{r bobo}
+```{r video emotions}
 
-bobo_emotion_long = melt(bobo_emotions, id.vars = c("X","box"))
-bobo_emotion_long[is.na(bobo_emotion_long)] <- 0
+## make data in long format
+video_emotion_long = melt(video_emotions, id.vars = c("X","box"))
+video_emotion_long[is.na(video_emotion_long)] <- 0
 
-ggplot(bobo_emotion_long, aes(y=value,x=variable,fill=variable))+ 
+### create bar plot
+ggplot(video_emotion_long, aes(y=value,x=variable,fill=variable))+ 
   stat_summary(fun.data=mean_sdl, geom="bar") +
   theme_bw() +
   labs(x = "Emotion", y = "Average Value")+
@@ -283,7 +220,8 @@ ggplot(bobo_emotion_long, aes(y=value,x=variable,fill=variable))+
         axis.text.x = element_text(size = 17, margin = margin(t = 0, r = 0, b = 0, l = 0)),
         ) 
 
-ggplot(bobo_emotion_long, aes(y=value,x=X,fill=variable,colour=variable))+ 
+#create line plot with emotions over time
+ggplot(video_emotion_long, aes(y=value,x=X,fill=variable,colour=variable))+ 
   geom_line() +
   theme_bw() +
   labs(x = "Time", y = "Emotion value")+
