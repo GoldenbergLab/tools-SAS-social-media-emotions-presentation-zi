@@ -13,6 +13,8 @@ What's in this repository?
 
 Look [here](https://docs.jupyter.org/en/latest/install/notebook-classic.html)
 
+Copy and paste this link if you can't click on it: [https://docs.jupyter.org/en/latest/install/notebook-classic.html](https://docs.jupyter.org/en/latest/install/notebook-classic.html)
+
 Essentially, this boils down to:
 
 1. Install anaconda
