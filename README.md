@@ -21,4 +21,4 @@ Essentially, this boils down to:
 2. Open the anaconda prompt, which is like a command line
 3. Type the words `jupyter notebook`
 
-Note: My notebooks were made using Python 3.7 and 3.8. It's possible that with the recommended Python 3.9 distribution, some of my code may break. If this is the case, you can always create a virtual environment in anaconda using a different version of Python.
+Note: My notebooks were made using Python 3.7 and 3.8. It's possible that with the recommended Python 3.9 distribution, some of my code may break. If this is the case, you can always create a virtual environment in anaconda using a different version of Python. Click here to learn how to create an environment with a different python version: [https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-with-commands)
